@@ -394,21 +394,19 @@ def calc_enps(scores):
 
 
 # ---------------------------------------------------------------------------
-# 07 직원만족도 eNPS 스코어카드 (BigQuery, 팀 필터)
+# 07 직원만족도 eNPS 스코어카드 (BigQuery, 팀 필터) — 카드 1개당 게이지 1개
 # ---------------------------------------------------------------------------
-def build_chart_enps(enps_df, team):
-    scope_df = enps_df if team == "전체" else enps_df[enps_df["team"] == team]
-    scope_enps = calc_enps(scope_df["agent_satisfaction"])
-    gauge_color = "#d03b3b" if scope_enps < 0 else "#0ca30c"
+def build_enps_card(enps_df, label, is_selected):
+    scope_df = enps_df if label == "전체" else enps_df[enps_df["team"] == label]
+    value = calc_enps(scope_df["agent_satisfaction"])
+    gauge_color = "#d03b3b" if value < 0 else "#0ca30c"
 
-    fig = go.Figure()
-    fig.add_trace(
+    fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
-            value=scope_enps,
-            number={"font": {"size": 48}},
-            title={"text": f"eNPS — {team}", "font": {"size": 20}},
-            domain={"x": [0, 0.55], "y": [0, 1]},
+            value=value,
+            number={"font": {"size": 32 if is_selected else 26}},
+            title={"text": f"{label} eNPS" + (" ✓" if is_selected else ""), "font": {"size": 15}},
             gauge={
                 "axis": {"range": [-100, 100], "tickwidth": 1},
                 "bar": {"color": gauge_color},
@@ -416,35 +414,11 @@ def build_chart_enps(enps_df, team):
                     {"range": [-100, 0], "color": "#f6d6d5"},
                     {"range": [0, 100], "color": "#e1e0d9"},
                 ],
-                "threshold": {"line": {"color": "#0b0b0b", "width": 2}, "thickness": 0.8, "value": scope_enps},
+                "threshold": {"line": {"color": "#0b0b0b", "width": 2}, "thickness": 0.8, "value": value},
             },
         )
     )
-
-    card_width = 0.12
-    card_gap = 0.02
-    start_x = 0.6
-    for i, t in enumerate(TEAM_ORDER):
-        value = calc_enps(enps_df.loc[enps_df["team"] == t, "agent_satisfaction"])
-        x0 = start_x + i * (card_width + card_gap)
-        x1 = x0 + card_width
-        is_selected = team == t
-        fig.add_trace(
-            go.Indicator(
-                mode="number",
-                value=value,
-                number={
-                    "font": {
-                        "size": 34 if is_selected else 26,
-                        "color": "#d03b3b" if value < 0 else "#0ca30c",
-                    },
-                },
-                title={"text": f"{t} eNPS" + (" ✓" if is_selected else ""), "font": {"size": 16}},
-                domain={"x": [x0, x1], "y": [0.35, 0.65]},
-            )
-        )
-
-    fig.update_layout(height=350, margin=dict(t=80, b=20, l=20, r=20))
+    fig.update_layout(height=220, margin=dict(t=50, b=10, l=20, r=20))
     return fig
 
 
@@ -592,8 +566,19 @@ def main():
     team_options = ["전체"] + TEAM_ORDER
     selected_team = st.selectbox("팀 선택", team_options)
 
-    st.plotly_chart(build_chart_enps(enps_df, selected_team), use_container_width=True)
+    st.markdown("###### 07. eNPS 스코어카드")
+    score_cols = st.columns(len(team_options))
+    for col, label in zip(score_cols, team_options):
+        with col:
+            st.plotly_chart(
+                build_enps_card(enps_df, label, label == selected_team),
+                use_container_width=True,
+            )
+
+    st.markdown("###### 08. 번아웃×CSAT 산점도")
     st.plotly_chart(build_chart_burnout(burnout_df, selected_team), use_container_width=True)
+
+    st.markdown("###### 09. 교육이수 비교")
     st.plotly_chart(
         build_chart_training(training_csat_df, training_recontact_df, selected_team), use_container_width=True
     )

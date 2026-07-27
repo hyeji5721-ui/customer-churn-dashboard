@@ -21,5 +21,7 @@ Thumbs.db
 .idea/
 .claude/settings.local.json
 
+.streamlit/secrets.toml
+
 *.log
 .ipynb_checkpoints/
