@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from google.cloud import bigquery
+from google.oauth2 import service_account
 from plotly.subplots import make_subplots
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +15,14 @@ REFERENCE_DATE = pd.Timestamp("2024-12-31")
 
 BQ_PROJECT = "project-6fcaf3a6-ee2b-4616-8de"
 BQ_DATASET = "data"
+
+
+@st.cache_resource
+def get_bq_client():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"]
+    )
+    return bigquery.Client(project=BQ_PROJECT, credentials=credentials)
 
 
 @st.cache_data
@@ -34,7 +43,7 @@ def load_all():
 
 @st.cache_data
 def load_burnout_csat_bq():
-    client = bigquery.Client(project=BQ_PROJECT)
+    client = get_bq_client()
     query = f"""
         SELECT
             a.agent_id AS agent_id,
@@ -51,7 +60,7 @@ def load_burnout_csat_bq():
 
 @st.cache_data
 def load_training_csat_bq():
-    client = bigquery.Client(project=BQ_PROJECT)
+    client = get_bq_client()
     query = f"""
         SELECT a.team AS team, a.training_completed_yn AS training_completed_yn, s.csat AS csat
         FROM `{BQ_DATASET}.data_agents` AS a
@@ -63,7 +72,7 @@ def load_training_csat_bq():
 
 @st.cache_data
 def load_training_recontact_bq():
-    client = bigquery.Client(project=BQ_PROJECT)
+    client = get_bq_client()
     query = f"""
         SELECT a.team AS team, a.training_completed_yn AS training_completed_yn, c.is_recontact AS is_recontact
         FROM `{BQ_DATASET}.data_agents` AS a
@@ -74,7 +83,7 @@ def load_training_recontact_bq():
 
 @st.cache_data
 def load_agent_enps_bq():
-    client = bigquery.Client(project=BQ_PROJECT)
+    client = get_bq_client()
     query = f"""
         SELECT agent_id, team, agent_satisfaction
         FROM `{BQ_DATASET}.data_agents`
