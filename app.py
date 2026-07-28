@@ -1,4 +1,5 @@
 import os
+import re
 
 import pandas as pd
 import plotly.express as px
@@ -51,6 +52,118 @@ def load_report_markdown():
         if end != -1:
             text = text[end + len("\n---") :].lstrip("\n")
     return text
+
+
+CONFIDENCE_COLORS = {"높음": "#0ca30c", "중간": "#c9a227", "낮음": "#d03b3b"}
+
+SECTION_HEADING_RE = re.compile(r"^## (\d)\. (.+)$", re.MULTILINE)
+TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
+TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$")
+
+
+@st.cache_data
+def split_report_sections(report_text):
+    matches = list(SECTION_HEADING_RE.finditer(report_text))
+    sections = {}
+    for i, m in enumerate(matches):
+        num = int(m.group(1))
+        title = m.group(2).strip()
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(report_text)
+        sections[num] = (title, report_text[start:end].strip("\n"))
+    return sections
+
+
+def _strip_tags(text):
+    return re.sub(r"</?strong>", "", text)
+
+
+def _table_lines_to_df(lines):
+    header = [c.strip() for c in lines[0].strip().strip("|").split("|")]
+    rows = []
+    for line in lines[2:]:
+        cells = [_strip_tags(c.strip()) for c in line.strip().strip("|").split("|")]
+        cells += [""] * (len(header) - len(cells))
+        rows.append(cells[: len(header)])
+    return pd.DataFrame(rows, columns=header)
+
+
+def _style_confidence_df(df):
+    target_cols = [c for c in df.columns if c in ("Confidence", "등급")]
+    if not target_cols:
+        return df
+
+    def color_cell(val):
+        color = CONFIDENCE_COLORS.get(val.strip())
+        if not color:
+            return ""
+        return f"background-color: {color}22; color: {color}; font-weight: 600;"
+
+    return df.style.map(color_cell, subset=target_cols)
+
+
+def badge_confidence(text):
+    def repl(m):
+        word = m.group(0)
+        color = CONFIDENCE_COLORS[word]
+        return (
+            f'<span style="background:{color}22;color:{color};border:1px solid {color};'
+            f'border-radius:4px;padding:1px 6px;font-weight:600;font-size:0.85em;">{word}</span>'
+        )
+
+    return re.sub(r"높음|중간|낮음", repl, text)
+
+
+def render_report_block(text):
+    lines = text.split("\n")
+    buffer = []
+    i, n = 0, len(lines)
+    while i < n:
+        if i + 1 < n and TABLE_ROW_RE.match(lines[i]) and TABLE_SEPARATOR_RE.match(lines[i + 1]):
+            if buffer:
+                st.markdown(badge_confidence("\n".join(buffer)), unsafe_allow_html=True)
+                buffer = []
+            table_lines = [lines[i], lines[i + 1]]
+            j = i + 2
+            while j < n and TABLE_ROW_RE.match(lines[j]):
+                table_lines.append(lines[j])
+                j += 1
+            df = _table_lines_to_df(table_lines)
+            st.dataframe(_style_confidence_df(df), use_container_width=True, hide_index=True)
+            i = j
+        else:
+            buffer.append(lines[i])
+            i += 1
+    if buffer and "\n".join(buffer).strip():
+        st.markdown(badge_confidence("\n".join(buffer)), unsafe_allow_html=True)
+
+
+def render_report_tab():
+    sections = split_report_sections(load_report_markdown())
+    section_labels = [f"{n}. {sections[n][0]}" for n in range(1, 9)]
+
+    st.subheader("고객서비스 만족도개선 리포트")
+    selected = st.selectbox("바로가기", section_labels, index=0)
+    selected_num = int(selected.split(".")[0])
+
+    exec_title, exec_body = sections[1]
+    exec_html = badge_confidence(exec_body).replace("\n", "<br><br>")
+    st.markdown(
+        f"""
+<div style="background:#eaf3ff;border:1px solid #2a78d6;border-radius:8px;
+padding:1rem 1.2rem;margin-bottom:0.5rem;">
+<span style="font-size:0.95rem;font-weight:700;color:#2a78d6;">📌 1. {exec_title}</span>
+<div style="margin-top:0.5rem;line-height:1.6;">{exec_html}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    for n in range(2, 9):
+        title, body = sections[n]
+        with st.expander(f"{n}. {title}", expanded=(selected_num == n)):
+            render_report_block(body)
+        st.divider()
 
 
 @st.cache_data
@@ -599,7 +712,7 @@ def main():
         )
 
     with tab2:
-        st.markdown(load_report_markdown(), unsafe_allow_html=True)
+        render_report_tab()
 
 
 if __name__ == "__main__":
