@@ -114,7 +114,8 @@ def badge_confidence(text):
         color = CONFIDENCE_COLORS[word]
         return (
             f'<span style="background:{color}22;color:{color};border:1px solid {color};'
-            f'border-radius:4px;padding:1px 6px;font-weight:600;font-size:0.85em;">{word}</span>'
+            f'border-radius:4px;padding:1px 6px;font-weight:600;font-size:0.8rem;'
+            f'vertical-align:middle;">{word}</span>'
         )
 
     return re.sub(r"높음|중간|낮음", repl, text)
