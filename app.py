@@ -42,6 +42,18 @@ def load_all():
 
 
 @st.cache_data
+def load_report_markdown():
+    report_path = os.path.join(BASE_DIR, "report", "고객서비스_만족도개선_리포트.md")
+    with open(report_path, encoding="utf-8") as f:
+        text = f.read()
+    if text.startswith("---"):
+        end = text.find("\n---", 3)
+        if end != -1:
+            text = text[end + len("\n---") :].lstrip("\n")
+    return text
+
+
+@st.cache_data
 def load_burnout_csat_bq():
     client = get_bq_client()
     query = f"""
@@ -533,55 +545,61 @@ def main():
     st.title("고객은 왜 이탈하는가 — 이탈 원인 진단 대시보드")
     st.caption("데이터 분석 7기_박혜지")
 
-    total, churned, rate = churn_stats(customers)
-    col1, col2, col3 = st.columns(3)
-    col1.metric("전체 고객 수", f"{total}명")
-    col2.metric("이탈 고객 수", f"{churned}명")
-    col3.metric("전체 이탈율", f"{rate:.1f}%")
+    tab1, tab2 = st.tabs(["대시보드", "개선 제안 리포트"])
 
-    st.subheader("① VOC로 본 이탈")
-    st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
+    with tab1:
+        total, churned, rate = churn_stats(customers)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("전체 고객 수", f"{total}명")
+        col2.metric("이탈 고객 수", f"{churned}명")
+        col3.metric("전체 이탈율", f"{rate:.1f}%")
 
-    st.subheader("② 채널·만족도로 본 이탈")
-    st.plotly_chart(build_chart_2(consultations, satisfaction), use_container_width=True)
+        st.subheader("① VOC로 본 이탈")
+        st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
 
-    st.subheader("③ 재문의 반복으로 본 이탈")
-    st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
+        st.subheader("② 채널·만족도로 본 이탈")
+        st.plotly_chart(build_chart_2(consultations, satisfaction), use_container_width=True)
 
-    st.subheader("④ 요금제로 본 이탈")
-    st.plotly_chart(build_chart_4(customers), use_container_width=True)
+        st.subheader("③ 재문의 반복으로 본 이탈")
+        st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
 
-    st.subheader("⑤ 지역으로 본 이탈")
-    st.plotly_chart(build_chart_5(customers), use_container_width=True)
+        st.subheader("④ 요금제로 본 이탈")
+        st.plotly_chart(build_chart_4(customers), use_container_width=True)
 
-    st.subheader("⑥ 가입기간·이용량으로 본 이탈")
-    st.plotly_chart(build_chart_6(customers, usage_history), use_container_width=True)
+        st.subheader("⑤ 지역으로 본 이탈")
+        st.plotly_chart(build_chart_5(customers), use_container_width=True)
 
-    st.subheader("상담원 관점: 직원만족도와 고객 경험")
-    enps_df = load_agent_enps_bq()
-    burnout_df = load_burnout_csat_bq()
-    training_csat_df = load_training_csat_bq()
-    training_recontact_df = load_training_recontact_bq()
+        st.subheader("⑥ 가입기간·이용량으로 본 이탈")
+        st.plotly_chart(build_chart_6(customers, usage_history), use_container_width=True)
 
-    team_options = ["전체"] + TEAM_ORDER
-    selected_team = st.selectbox("팀 선택", team_options)
+        st.subheader("상담원 관점: 직원만족도와 고객 경험")
+        enps_df = load_agent_enps_bq()
+        burnout_df = load_burnout_csat_bq()
+        training_csat_df = load_training_csat_bq()
+        training_recontact_df = load_training_recontact_bq()
 
-    st.markdown("###### 07. eNPS 스코어카드")
-    score_cols = st.columns(len(team_options))
-    for col, label in zip(score_cols, team_options):
-        with col:
-            st.plotly_chart(
-                build_enps_card(enps_df, label, label == selected_team),
-                use_container_width=True,
-            )
+        team_options = ["전체"] + TEAM_ORDER
+        selected_team = st.selectbox("팀 선택", team_options)
 
-    st.markdown("###### 08. 번아웃×CSAT 산점도")
-    st.plotly_chart(build_chart_burnout(burnout_df, selected_team), use_container_width=True)
+        st.markdown("###### 07. eNPS 스코어카드")
+        score_cols = st.columns(len(team_options))
+        for col, label in zip(score_cols, team_options):
+            with col:
+                st.plotly_chart(
+                    build_enps_card(enps_df, label, label == selected_team),
+                    use_container_width=True,
+                )
 
-    st.markdown("###### 09. 교육이수 비교")
-    st.plotly_chart(
-        build_chart_training(training_csat_df, training_recontact_df, selected_team), use_container_width=True
-    )
+        st.markdown("###### 08. 번아웃×CSAT 산점도")
+        st.plotly_chart(build_chart_burnout(burnout_df, selected_team), use_container_width=True)
+
+        st.markdown("###### 09. 교육이수 비교")
+        st.plotly_chart(
+            build_chart_training(training_csat_df, training_recontact_df, selected_team), use_container_width=True
+        )
+
+    with tab2:
+        st.markdown(load_report_markdown(), unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
