@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from plotly.subplots import make_subplots
@@ -172,9 +173,9 @@ def render_report_tab():
     if "report_expand_gen" not in st.session_state:
         st.session_state.report_expand_gen = 0
 
-    nav_col, expand_col, collapse_col = st.columns([3, 1, 1])
-    with nav_col:
-        selected = st.selectbox("바로가기", section_labels, index=0)
+    selected = st.selectbox("바로가기", section_labels, index=0)
+
+    expand_col, collapse_col = st.columns(2)
     with expand_col:
         if st.button("전체 펼치기", use_container_width=True):
             st.session_state.report_expanded = {n: True for n in range(2, 9)}
@@ -189,6 +190,7 @@ def render_report_tab():
         st.session_state.report_expanded[selected_num] = True
         st.session_state.report_expand_gen += 1
 
+    st.markdown(f'<div id="report-section-1"></div>', unsafe_allow_html=True)
     exec_title, exec_body = sections[1]
     exec_html = badge_confidence(exec_body).replace("\n", "<br><br>")
     st.markdown(
@@ -204,10 +206,27 @@ padding:1rem 1.2rem;margin-bottom:0.5rem;">
 
     for n in range(2, 9):
         title, body = sections[n]
+        st.markdown(f'<div id="report-section-{n}"></div>', unsafe_allow_html=True)
         exp_key = f"report_exp_{n}_{st.session_state.report_expand_gen}"
         with st.expander(f"{n}. {title}", expanded=st.session_state.report_expanded[n], key=exp_key):
             render_report_block(body)
         st.divider()
+
+    components.html(
+        f"""
+<script>
+function scrollToReportSection() {{
+    const target = window.parent.document.getElementById("report-section-{selected_num}");
+    if (target) {{
+        target.scrollIntoView({{behavior: "auto", block: "start"}});
+    }}
+}}
+setTimeout(scrollToReportSection, 200);
+setTimeout(scrollToReportSection, 500);
+</script>
+""",
+        height=0,
+    )
 
 
 @st.cache_data
