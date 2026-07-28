@@ -55,10 +55,12 @@ def load_report_markdown():
 
 
 CONFIDENCE_COLORS = {"높음": "#0ca30c", "중간": "#c9a227", "낮음": "#d03b3b"}
+CONFIDENCE_PRIORITY = ["낮음", "중간", "높음"]
 
 SECTION_HEADING_RE = re.compile(r"^## (\d)\. (.+)$", re.MULTILINE)
 TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 TABLE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$")
+WIKILINK_RE = re.compile(r"\[\[([^\]]+)\]\]")
 
 
 @st.cache_data
@@ -74,15 +76,17 @@ def split_report_sections(report_text):
     return sections
 
 
-def _strip_tags(text):
-    return re.sub(r"</?strong>", "", text)
+def _clean_cell(text):
+    text = re.sub(r"</?strong>", "", text)
+    text = WIKILINK_RE.sub(lambda m: m.group(1), text)
+    return text
 
 
 def _table_lines_to_df(lines):
     header = [c.strip() for c in lines[0].strip().strip("|").split("|")]
     rows = []
     for line in lines[2:]:
-        cells = [_strip_tags(c.strip()) for c in line.strip().strip("|").split("|")]
+        cells = [_clean_cell(c.strip()) for c in line.strip().strip("|").split("|")]
         cells += [""] * (len(header) - len(cells))
         rows.append(cells[: len(header)])
     return pd.DataFrame(rows, columns=header)
@@ -94,10 +98,11 @@ def _style_confidence_df(df):
         return df
 
     def color_cell(val):
-        color = CONFIDENCE_COLORS.get(val.strip())
-        if not color:
-            return ""
-        return f"background-color: {color}22; color: {color}; font-weight: 600;"
+        for key in CONFIDENCE_PRIORITY:
+            if key in val:
+                color = CONFIDENCE_COLORS[key]
+                return f"background-color: {color}22; color: {color}; font-weight: 600;"
+        return ""
 
     return df.style.map(color_cell, subset=target_cols)
 
@@ -114,14 +119,30 @@ def badge_confidence(text):
     return re.sub(r"높음|중간|낮음", repl, text)
 
 
+def style_wikilinks(text):
+    def repl(m):
+        ref = m.group(1)
+        return (
+            f'<span style="background:#f0f0ef;color:#6b6a65;border-radius:10px;'
+            f'padding:1px 8px;font-size:0.8em;font-family:monospace;">📄 {ref}</span>'
+        )
+
+    return WIKILINK_RE.sub(repl, text)
+
+
 def render_report_block(text):
     lines = text.split("\n")
     buffer = []
     i, n = 0, len(lines)
+    def flush(buf):
+        text = "\n".join(buf)
+        if text.strip():
+            st.markdown(style_wikilinks(badge_confidence(text)), unsafe_allow_html=True)
+
     while i < n:
         if i + 1 < n and TABLE_ROW_RE.match(lines[i]) and TABLE_SEPARATOR_RE.match(lines[i + 1]):
             if buffer:
-                st.markdown(badge_confidence("\n".join(buffer)), unsafe_allow_html=True)
+                flush(buffer)
                 buffer = []
             table_lines = [lines[i], lines[i + 1]]
             j = i + 2
@@ -129,13 +150,15 @@ def render_report_block(text):
                 table_lines.append(lines[j])
                 j += 1
             df = _table_lines_to_df(table_lines)
-            st.dataframe(_style_confidence_df(df), use_container_width=True, hide_index=True)
+            table_height = (len(df) + 1) * 35 + 3
+            st.dataframe(
+                _style_confidence_df(df), use_container_width=True, hide_index=True, height=table_height
+            )
             i = j
         else:
             buffer.append(lines[i])
             i += 1
-    if buffer and "\n".join(buffer).strip():
-        st.markdown(badge_confidence("\n".join(buffer)), unsafe_allow_html=True)
+    flush(buffer)
 
 
 def render_report_tab():
@@ -143,8 +166,28 @@ def render_report_tab():
     section_labels = [f"{n}. {sections[n][0]}" for n in range(1, 9)]
 
     st.subheader("고객서비스 만족도개선 리포트")
-    selected = st.selectbox("바로가기", section_labels, index=0)
+
+    if "report_expanded" not in st.session_state:
+        st.session_state.report_expanded = {n: False for n in range(2, 9)}
+    if "report_expand_gen" not in st.session_state:
+        st.session_state.report_expand_gen = 0
+
+    nav_col, expand_col, collapse_col = st.columns([3, 1, 1])
+    with nav_col:
+        selected = st.selectbox("바로가기", section_labels, index=0)
+    with expand_col:
+        if st.button("전체 펼치기", use_container_width=True):
+            st.session_state.report_expanded = {n: True for n in range(2, 9)}
+            st.session_state.report_expand_gen += 1
+    with collapse_col:
+        if st.button("전체 접기", use_container_width=True):
+            st.session_state.report_expanded = {n: False for n in range(2, 9)}
+            st.session_state.report_expand_gen += 1
+
     selected_num = int(selected.split(".")[0])
+    if selected_num in st.session_state.report_expanded and not st.session_state.report_expanded[selected_num]:
+        st.session_state.report_expanded[selected_num] = True
+        st.session_state.report_expand_gen += 1
 
     exec_title, exec_body = sections[1]
     exec_html = badge_confidence(exec_body).replace("\n", "<br><br>")
@@ -161,7 +204,8 @@ padding:1rem 1.2rem;margin-bottom:0.5rem;">
 
     for n in range(2, 9):
         title, body = sections[n]
-        with st.expander(f"{n}. {title}", expanded=(selected_num == n)):
+        exp_key = f"report_exp_{n}_{st.session_state.report_expand_gen}"
+        with st.expander(f"{n}. {title}", expanded=st.session_state.report_expanded[n], key=exp_key):
             render_report_block(body)
         st.divider()
 
