@@ -354,7 +354,7 @@ def build_chart_2(consultations, satisfaction):
             x=summary["channel"],
             y=summary["csat_avg"],
             name="CSAT 평균",
-            marker_color="#2a78d6",
+            marker_color=c.COLOR_BAR,
             customdata=summary[["recontact_rate", "count"]].values,
             hovertemplate="<b>%{x}</b><br>CSAT 평균: %{y:.2f}<br>재문의율: %{customdata[0]:.1f}%<extra></extra>",
         ),
@@ -366,14 +366,19 @@ def build_chart_2(consultations, satisfaction):
             y=summary["recontact_rate"],
             name="재문의율",
             mode="lines+markers",
-            line=dict(color="#d03b3b", width=3),
-            marker=dict(size=9, color="#d03b3b"),
+            line=dict(color=c.COLOR_CRITICAL, width=3),
+            marker=dict(size=9, color=c.COLOR_CRITICAL),
             customdata=summary[["csat_avg", "count"]].values,
             hovertemplate="<b>%{x}</b><br>재문의율: %{y:.1f}%<br>CSAT 평균: %{customdata[0]:.2f}<extra></extra>",
         ),
         secondary_y=True,
     )
-    fig.update_layout(title="채널별 CSAT 평균 vs 재문의율 (CSAT 낮은 순)", xaxis_title="채널", hovermode="x unified")
+    fig.update_layout(
+        title="채널별 CSAT 평균 vs 재문의율 (CSAT 낮은 순)",
+        xaxis_title="채널",
+        hovermode="x unified",
+        **c.CHART_LAYOUT,
+    )
     fig.update_yaxes(title_text="CSAT 평균", secondary_y=False)
     fig.update_yaxes(title_text="재문의율 (%)", secondary_y=True)
     return fig
@@ -419,7 +424,7 @@ def build_chart_3(consultations, customers):
         y="churn_rate",
         color="bucket",
         category_orders={"bucket": bucket_order},
-        color_discrete_map={"0회": "#2a78d6", "1회": "#2a78d6", "2회 이상": "#d03b3b"},
+        color_discrete_map={"0회": c.COLOR_BAR, "1회": c.COLOR_BAR, "2회 이상": c.COLOR_CRITICAL},
         custom_data=["customer_count", "churned_count"],
         text=summary["churn_rate"].map(lambda v: f"{v:.1f}%"),
         title="재문의 횟수 구간별 이탈율",
@@ -435,11 +440,15 @@ def build_chart_3(consultations, customers):
     fig.add_hline(
         y=overall_churn_rate,
         line_dash="dash",
-        line_color="#898781",
+        line_color=c.COLOR_NEUTRAL,
         annotation_text=f"전체 평균 이탈율 {overall_churn_rate:.1f}%",
         annotation_position="top right",
     )
-    fig.update_layout(showlegend=False, yaxis_range=[0, summary["churn_rate"].max() * 1.3])
+    fig.update_layout(
+        showlegend=False,
+        yaxis_range=[0, summary["churn_rate"].max() * 1.3],
+        **c.CHART_LAYOUT,
+    )
     return fig
 
 
