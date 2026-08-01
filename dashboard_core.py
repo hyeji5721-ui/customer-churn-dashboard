@@ -719,8 +719,7 @@ def render_dashboard_page():
     voc = data["voc"]
     usage_history = data["usage_history"]
 
-    c.render_hero("대시보드", "고객은 왜 이탈하는가 — 이탈 원인 진단 대시보드")
-    st.caption("데이터 분석 7기_박혜지")
+    c.render_hero("대시보드", "고객은 왜 이탈하는가 — 이탈 원인 진단 대시보드", "데이터 분석 7기_박혜지")
 
     total, churned, rate = churn_stats(customers)
     col1, col2, col3 = st.columns(3)

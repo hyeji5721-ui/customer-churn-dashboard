@@ -22,11 +22,16 @@ CHART_LAYOUT = dict(
 PLOTLY_CONFIG = {"displayModeBar": False}
 
 
-def render_hero(title, subtitle=None):
-    """페이지 상단 히어로 배너."""
+def render_hero(title, subtitle=None, meta=None):
+    """페이지 상단 히어로 배너. meta는 작성자 등 부가 정보용 선택적 3번째 줄."""
     subtitle_html = (
         f'<div style="font-size:0.95rem;color:{COLOR_NEUTRAL};margin-top:0.3rem;">{subtitle}</div>'
         if subtitle
+        else ""
+    )
+    meta_html = (
+        f'<div style="font-size:0.8rem;color:{COLOR_NEUTRAL};margin-top:0.5rem;">{meta}</div>'
+        if meta
         else ""
     )
     st.markdown(
@@ -35,6 +40,7 @@ def render_hero(title, subtitle=None):
 border-radius:8px;padding:1.2rem 1.5rem;margin-bottom:1.2rem;">
     <div style="font-size:1.5rem;font-weight:700;color:#0b0b0b;">{title}</div>
     {subtitle_html}
+    {meta_html}
 </div>
 """,
         unsafe_allow_html=True,
