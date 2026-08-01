@@ -110,6 +110,34 @@ def _style_confidence_df(df):
     return df.style.map(color_cell, subset=target_cols)
 
 
+CIRCLED_DIGITS = {str(i): chr(0x2460 + i - 1) for i in range(1, 21)}  # "1"->"①" ... "20"->"⑳"
+NUMBERED_LINE_RE = re.compile(r"^(\d+)\.\s+(.*)$")
+
+
+def circle_numbered_list(text):
+    """연속된 'N. 내용' 줄들을 찾아 원숫자('① 내용')로 바꾸고, 한 줄(<br> 구분)로 합친다.
+    (그대로 두면 마크다운이 <ol>로 자동 렌더링해 원숫자 표기가 반영되지 않음)"""
+    lines = text.split("\n")
+    out = []
+    i, n = 0, len(lines)
+    while i < n:
+        m = NUMBERED_LINE_RE.match(lines[i])
+        if not m:
+            out.append(lines[i])
+            i += 1
+            continue
+        block = []
+        while i < n:
+            m2 = NUMBERED_LINE_RE.match(lines[i])
+            if not m2:
+                break
+            circled = CIRCLED_DIGITS.get(m2.group(1), m2.group(1) + ".")
+            block.append(f"{circled} {m2.group(2)}")
+            i += 1
+        out.append("<br>".join(block))
+    return "\n".join(out)
+
+
 def badge_confidence(text):
     def repl(m):
         word = m.group(0)
@@ -141,7 +169,7 @@ def render_report_block(text):
     def flush(buf):
         text = "\n".join(buf)
         if text.strip():
-            st.markdown(style_wikilinks(badge_confidence(text)), unsafe_allow_html=True)
+            st.markdown(style_wikilinks(badge_confidence(circle_numbered_list(text))), unsafe_allow_html=True)
 
     while i < n:
         if i + 1 < n and TABLE_ROW_RE.match(lines[i]) and TABLE_SEPARATOR_RE.match(lines[i + 1]):
@@ -208,12 +236,12 @@ def render_report_tab():
 
     st.markdown(f'<div id="report-section-1"></div>', unsafe_allow_html=True)
     exec_title, exec_body = sections[1]
-    exec_html = badge_confidence(exec_body).replace("\n", "<br><br>")
+    exec_html = badge_confidence(circle_numbered_list(exec_body)).replace("\n", "<br><br>")
     st.markdown(
         f"""
-<div style="background:#eaf3ff;border:1px solid #2a78d6;border-radius:8px;
+<div style="background:{c.COLOR_BAR}12;border:1px solid {c.COLOR_BAR};border-radius:8px;
 padding:1rem 1.2rem;margin-bottom:0.5rem;">
-<span style="font-size:0.95rem;font-weight:700;color:#2a78d6;">📌 1. {exec_title}</span>
+<span style="font-size:28px;font-weight:600;color:{c.COLOR_BAR};">📌 1. {exec_title}</span>
 <div style="margin-top:0.5rem;line-height:1.6;">{exec_html}</div>
 </div>
 """,
