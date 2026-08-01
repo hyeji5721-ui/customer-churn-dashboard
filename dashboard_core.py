@@ -234,6 +234,13 @@ def render_report_tab():
         st.session_state.report_expanded[selected_num] = True
         st.session_state.report_expand_gen += 1
 
+    # 최초 진입 시 "바로가기" 기본값(1번)으로 자동 스크롤되어 화면 맨 위가 아니게 시작되는 것을 방지 —
+    # 사용자가 실제로 드롭다운을 바꿨을 때만(이전에 스크롤한 섹션과 다를 때만) 스크롤 스크립트를 실행함
+    if "report_last_scrolled" not in st.session_state:
+        st.session_state.report_last_scrolled = selected_num
+    should_scroll = selected_num != st.session_state.report_last_scrolled
+    st.session_state.report_last_scrolled = selected_num
+
     st.markdown(f'<div id="report-section-1"></div>', unsafe_allow_html=True)
     exec_title, exec_body = sections[1]
     exec_html = badge_confidence(circle_numbered_list(exec_body)).replace("\n", "<br><br>")
@@ -256,8 +263,9 @@ padding:1rem 1.2rem;margin-bottom:0.5rem;">
             render_report_block(body)
         st.divider()
 
-    components.html(
-        f"""
+    if should_scroll:
+        components.html(
+            f"""
 <script>
 function scrollToReportSection() {{
     const target = window.parent.document.getElementById("report-section-{selected_num}");
@@ -269,8 +277,8 @@ setTimeout(scrollToReportSection, 200);
 setTimeout(scrollToReportSection, 500);
 </script>
 """,
-        height=0,
-    )
+            height=0,
+        )
 
 
 @st.cache_data
