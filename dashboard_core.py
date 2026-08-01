@@ -724,9 +724,12 @@ def render_dashboard_page():
 
     total, churned, rate = churn_stats(customers)
     col1, col2, col3 = st.columns(3)
-    col1.metric("전체 고객 수", f"{total}명")
-    col2.metric("이탈 고객 수", f"{churned}명")
-    col3.metric("전체 이탈율", f"{rate:.1f}%")
+    with col1:
+        c.render_stat_tile("전체 고객 수", f"{total}명")
+    with col2:
+        c.render_stat_tile("이탈 고객 수", f"{churned}명")
+    with col3:
+        c.render_stat_tile("전체 이탈율", f"{rate:.1f}%", "이탈 고객 수 ÷ 전체 고객 수")
 
     st.subheader("① VOC로 본 이탈")
     st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
