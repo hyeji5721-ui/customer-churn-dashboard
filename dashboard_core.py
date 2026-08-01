@@ -729,7 +729,7 @@ def render_dashboard_page():
     with col2:
         c.render_stat_tile("이탈 고객 수", f"{churned}명")
     with col3:
-        c.render_stat_tile("전체 이탈율", f"{rate:.1f}%", "이탈 고객 수 ÷ 전체 고객 수")
+        c.render_stat_tile("전체 이탈율", f"{rate:.1f}%")
 
     st.subheader("① VOC로 본 이탈")
     st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
