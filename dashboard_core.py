@@ -10,6 +10,8 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 from plotly.subplots import make_subplots
 
+import common as c
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
@@ -167,7 +169,7 @@ def render_report_tab():
     sections = split_report_sections(load_report_markdown())
     section_labels = [f"{n}. {sections[n][0]}" for n in range(1, 9)]
 
-    st.subheader("고객서비스 만족도개선 리포트")
+    c.render_hero("개선 제안 리포트", "고객서비스 만족도개선 리포트")
 
     if "report_expanded" not in st.session_state:
         st.session_state.report_expanded = {n: False for n in range(2, 9)}
@@ -717,7 +719,7 @@ def render_dashboard_page():
     voc = data["voc"]
     usage_history = data["usage_history"]
 
-    st.title("고객은 왜 이탈하는가 — 이탈 원인 진단 대시보드")
+    c.render_hero("대시보드", "고객은 왜 이탈하는가 — 이탈 원인 진단 대시보드")
     st.caption("데이터 분석 7기_박혜지")
 
     total, churned, rate = churn_stats(customers)
