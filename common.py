@@ -21,9 +21,28 @@ CHART_LAYOUT = dict(
 
 PLOTLY_CONFIG = {"displayModeBar": False}
 
+MAX_CONTENT_WIDTH = 1200  # 넓은 화면에서 카테고리 적은 차트가 과하게 늘어지는 것을 막기 위한 콘텐츠 최대 폭(px)
+
+
+def apply_page_style():
+    """페이지 전체 콘텐츠 폭을 제한(가운데 정렬). st.navigation 페이지마다 새로 렌더링되므로 매번 호출."""
+    st.markdown(
+        f"""
+<style>
+[data-testid="stMain"] .block-container {{
+    max-width: {MAX_CONTENT_WIDTH}px;
+    margin-left: auto;
+    margin-right: auto;
+}}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
 
 def render_hero(title, subtitle=None, meta=None):
     """페이지 상단 히어로 배너. meta는 작성자 등 부가 정보용 선택적 3번째 줄."""
+    apply_page_style()
     subtitle_html = (
         f'<div style="font-size:0.95rem;color:{COLOR_NEUTRAL};margin-top:0.3rem;">{subtitle}</div>'
         if subtitle

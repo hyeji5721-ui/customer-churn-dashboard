@@ -305,8 +305,11 @@ def load_training_csat_bq():
 @st.cache_data
 def load_training_recontact_bq():
     client = get_bq_client()
+    # 재문의 판단 기준은 [[data_consultations]] 노트에서 정본으로 확정한 status="재문의"로 통일
+    # (컬럼명 is_recontact는 하위 호환을 위해 그대로 유지)
     query = f"""
-        SELECT a.team AS team, a.training_completed_yn AS training_completed_yn, c.is_recontact AS is_recontact
+        SELECT a.team AS team, a.training_completed_yn AS training_completed_yn,
+               (c.status = '재문의') AS is_recontact
         FROM `{BQ_DATASET}.data_agents` AS a
         JOIN `{BQ_DATASET}.data_consultations` AS c ON a.agent_id = c.agent_id
     """
@@ -375,14 +378,15 @@ def build_chart_1(customers, voc):
 # ② 채널·만족도로 본 이탈
 # ---------------------------------------------------------------------------
 def build_chart_2(consultations, satisfaction):
+    # 재문의 판단 기준은 [[data_consultations]] 노트에서 정본으로 확정한 status="재문의"로 통일
     merged = satisfaction.merge(
-        consultations[["consult_id", "channel", "is_recontact"]], on="consult_id", how="inner"
+        consultations[["consult_id", "channel", "status"]], on="consult_id", how="inner"
     )
     summary = (
         merged.groupby("channel")
         .agg(
             csat_avg=("csat", "mean"),
-            recontact_rate=("is_recontact", lambda s: (s == "Y").mean() * 100),
+            recontact_rate=("status", lambda s: (s == "재문의").mean() * 100),
             count=("consult_id", "count"),
         )
         .reset_index()
@@ -436,8 +440,9 @@ def build_chart_3(consultations, customers):
             return "1회"
         return "2회 이상"
 
+    # 재문의 판단 기준은 [[data_consultations]] 노트에서 정본으로 확정한 status="재문의"로 통일
     recontact_counts = (
-        consultations[consultations["is_recontact"] == "Y"]
+        consultations[consultations["status"] == "재문의"]
         .groupby("customer_id")
         .size()
         .rename("recontact_count")
@@ -646,6 +651,7 @@ def build_enps_card(enps_df, label, is_selected):
         go.Indicator(
             mode="gauge+number",
             value=value,
+            domain={"x": [0.1, 0.9], "y": [0, 1]},  # 양 끝(-100/100) 축 라벨이 잘리지 않도록 좌우 여백 확보
             number={"font": {"size": 32 if is_selected else 26}},
             title={"text": f"{label} eNPS" + (" ✓" if is_selected else ""), "font": {"size": 15}},
             gauge={
@@ -659,7 +665,7 @@ def build_enps_card(enps_df, label, is_selected):
             },
         )
     )
-    fig.update_layout(height=220, margin=dict(t=50, b=10, l=20, r=20))
+    fig.update_layout(height=220, margin=dict(t=50, b=10, l=40, r=40))
     return fig
 
 
