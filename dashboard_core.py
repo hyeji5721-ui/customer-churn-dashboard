@@ -171,6 +171,19 @@ def render_report_tab():
 
     c.render_hero("개선 제안 리포트", "고객서비스 만족도개선 리포트")
 
+    st.markdown(
+        """
+<style>
+[data-testid="stExpander"] summary p,
+[data-testid="stSelectbox"] input {
+    font-size: 28px !important;
+    font-weight: 600 !important;
+}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
     if "report_expanded" not in st.session_state:
         st.session_state.report_expanded = {n: False for n in range(2, 9)}
     if "report_expand_gen" not in st.session_state:
