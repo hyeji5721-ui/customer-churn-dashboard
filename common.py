@@ -38,7 +38,7 @@ def render_hero(title, subtitle=None, meta=None):
         f"""
 <div style="background:{COLOR_BAR}12;border-left:4px solid {COLOR_BAR};
 border-radius:8px;padding:1.2rem 1.5rem;margin-bottom:1.2rem;">
-    <div style="font-size:1.5rem;font-weight:700;color:#0b0b0b;">{title}</div>
+    <div style="font-size:28px;font-weight:700;color:#0b0b0b;">{title}</div>
     {subtitle_html}
     {meta_html}
 </div>
