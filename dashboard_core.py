@@ -483,12 +483,17 @@ def build_chart_3(consultations, customers):
             "이탈 고객 수: %{customdata[1]}명<br>이탈율: %{y:.1f}%<extra></extra>"
         ),
     )
-    fig.add_hline(
-        y=overall_churn_rate,
-        line_dash="dash",
-        line_color=c.COLOR_NEUTRAL,
-        annotation_text=f"전체 평균 이탈율 {overall_churn_rate:.1f}%",
-        annotation_position="top right",
+    fig.add_hline(y=overall_churn_rate, line_dash="dash", line_color=c.COLOR_NEUTRAL)
+    # 막대 라벨과 겹치지 않도록 주석은 선(hline)이 아니라 플롯 상단 여백(paper 좌표)에 고정
+    fig.add_annotation(
+        xref="paper",
+        yref="paper",
+        x=0.98,
+        y=0.95,
+        text=f"전체 평균 이탈율 {overall_churn_rate:.1f}%",
+        showarrow=False,
+        font=dict(size=11, color=c.COLOR_NEUTRAL),
+        align="right",
     )
     fig.update_layout(
         showlegend=False,
@@ -787,16 +792,22 @@ def render_dashboard_page():
         c.render_stat_tile("전체 이탈율", f"{rate:.1f}%")
 
     st.subheader("① VOC로 본 이탈")
-    st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
+    chart_1_col, _ = st.columns([2, 3])
+    with chart_1_col:
+        st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
 
     st.subheader("② 채널·만족도로 본 이탈")
     st.plotly_chart(build_chart_2(consultations, satisfaction), use_container_width=True)
 
     st.subheader("③ 재문의 반복으로 본 이탈")
-    st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
+    chart_3_col, _ = st.columns([2, 3])
+    with chart_3_col:
+        st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
 
     st.subheader("④ 요금제로 본 이탈")
-    st.plotly_chart(build_chart_4(customers), use_container_width=True)
+    chart_4_col, _ = st.columns([2, 3])
+    with chart_4_col:
+        st.plotly_chart(build_chart_4(customers), use_container_width=True)
 
     st.subheader("⑤ 지역으로 본 이탈")
     st.plotly_chart(build_chart_5(customers), use_container_width=True)
