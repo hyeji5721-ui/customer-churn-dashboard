@@ -365,6 +365,7 @@ def build_chart_1(customers, voc):
     )
     fig.update_traces(
         textposition="outside",
+        width=0.35,  # 카테고리가 적어 막대가 굵어 보이지 않도록 폭만 축소(차트 전체 폭은 유지)
         hovertemplate=(
             "<b>%{x}</b><br>고객 수: %{customdata[0]}명<br>"
             "이탈 고객 수: %{customdata[1]}명<br>이탈율: %{y:.1f}%<extra></extra>"
@@ -478,6 +479,7 @@ def build_chart_3(consultations, customers):
     )
     fig.update_traces(
         textposition="outside",
+        width=0.35,  # 카테고리가 적어 막대가 굵어 보이지 않도록 폭만 축소(차트 전체 폭은 유지)
         hovertemplate=(
             "<b>%{x}</b><br>고객 수: %{customdata[0]}명<br>"
             "이탈 고객 수: %{customdata[1]}명<br>이탈율: %{y:.1f}%<extra></extra>"
@@ -529,6 +531,7 @@ def build_chart_4(customers):
     )
     fig.update_traces(
         textposition="outside",
+        width=0.35,  # 카테고리가 적어 막대가 굵어 보이지 않도록 폭만 축소(차트 전체 폭은 유지)
         hovertemplate=(
             "<b>%{x}</b><br>고객 수: %{customdata[0]}명<br>"
             "이탈 고객 수: %{customdata[1]}명<br>이탈율: %{y:.1f}%<extra></extra>"
@@ -792,22 +795,16 @@ def render_dashboard_page():
         c.render_stat_tile("전체 이탈율", f"{rate:.1f}%")
 
     st.subheader("① VOC로 본 이탈")
-    chart_1_col, _ = st.columns([2, 3])
-    with chart_1_col:
-        st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
+    st.plotly_chart(build_chart_1(customers, voc), use_container_width=True)
 
     st.subheader("② 채널·만족도로 본 이탈")
     st.plotly_chart(build_chart_2(consultations, satisfaction), use_container_width=True)
 
     st.subheader("③ 재문의 반복으로 본 이탈")
-    chart_3_col, _ = st.columns([2, 3])
-    with chart_3_col:
-        st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
+    st.plotly_chart(build_chart_3(consultations, customers), use_container_width=True)
 
     st.subheader("④ 요금제로 본 이탈")
-    chart_4_col, _ = st.columns([2, 3])
-    with chart_4_col:
-        st.plotly_chart(build_chart_4(customers), use_container_width=True)
+    st.plotly_chart(build_chart_4(customers), use_container_width=True)
 
     st.subheader("⑤ 지역으로 본 이탈")
     st.plotly_chart(build_chart_5(customers), use_container_width=True)
